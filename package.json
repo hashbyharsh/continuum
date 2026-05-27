@@ -1,0 +1,46 @@
+{
+  "name": "@hashbyharsh/continuum",
+  "version": "0.1.0",
+  "description": "Seamless AI session continuity — token analytics, Context Capsule handoffs, and Prompt Recommendations",
+  "type": "module",
+  "main": "./dist/cli.js",
+  "bin": {
+    "continuum": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "ai-coding",
+    "token-usage",
+    "cost-tracking",
+    "claude-code",
+    "cursor",
+    "context-capsule",
+    "prompt-optimization",
+    "continuum"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

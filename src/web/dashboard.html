@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Continuum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3248;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────── */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { font-size: 22px; }
+  .logo-text { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: -2px; }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+  }
+  .refresh-btn:hover { background: var(--border); }
+
+  .last-updated { font-size: 12px; color: var(--text3); }
+
+  .provider-filter {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  main {
+    flex: 1;
+    padding: 28px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* ── Tabs ─────────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .tab {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--accent); color: #fff; }
+  .tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Cards ─────────────────────────────────────────────────────── */
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+  @media (max-width: 1100px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px) { .grid-4, .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  .card-accent { border-left: 3px solid var(--accent); }
+  .card-success { border-left: 3px solid var(--success); }
+  .card-warning { border-left: 3px solid var(--warning); }
+  .card-danger  { border-left: 3px solid var(--danger); }
+
+  /* ── Chart containers ───────────────────────────────────────────── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .chart-title { font-size: 15px; font-weight: 600; }
+  .chart-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  .chart-container { position: relative; }
+
+  /* ── Tables ─────────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* ── Progress bars ──────────────────────────────────────────────── */
+  .progress-wrap { width: 100%; }
+  .progress-bar-outer {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── Badges ─────────────────────────────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .badge-danger  { background: rgba(239,68,68,0.15);  color: var(--danger); }
+  .badge-success { background: rgba(16,185,129,0.15); color: var(--success); }
+  .badge-info    { background: rgba(108,99,255,0.15); color: var(--accent); }
+
+  /* ── Capsule cards ──────────────────────────────────────────────── */
+  .capsule-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .capsule-card.critical { border-left: 3px solid var(--danger); }
+  .capsule-card.warning  { border-left: 3px solid var(--warning); }
+
+  .capsule-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .capsule-project { font-weight: 600; font-size: 15px; }
+  .capsule-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  .util-bar-wrap { margin: 12px 0; }
+  .util-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+
+  .capsule-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .btn-outline:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── Recommendation cards ───────────────────────────────────────── */
+  .rec-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .rec-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rec-title { font-weight: 600; font-size: 14px; }
+  .rec-desc { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+  .rec-template {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .rec-meta { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--text3); }
+  .saving-badge { color: var(--success); font-weight: 600; }
+
+  /* ── Empty state ────────────────────────────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+
+  /* ── Loading ─────────────────────────────────────────────────────── */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 60px;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+
+  /* ── Session detail modal ───────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 760px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .modal-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body {
+    overflow-y: auto;
+    padding: 20px 24px;
+    flex: 1;
+  }
+
+  .modal-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .modal-kpi {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .modal-kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
+  .modal-kpi-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+
+  .modal-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    margin: 18px 0 10px;
+  }
+
+  .turn-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+  .turn-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .turn-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .turn-cat { background: rgba(108,99,255,0.15); color: var(--accent); padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+  .turn-model { color: var(--text3); font-size: 11px; }
+  .turn-cost { margin-left: auto; color: var(--success); font-weight: 600; }
+  .turn-msg { color: var(--text2); line-height: 1.4; }
+
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">Continuum</div>
+        <div class="logo-sub">AI Session Continuity Dashboard</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <select class="provider-filter" id="providerFilter" onchange="applyFilter()">
+        <option value="all">All Providers</option>
+      </select>
+      <span class="last-updated" id="lastUpdated">—</span>
+      <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('overview')">Overview</button>
+      <button class="tab" onclick="switchTab('sessions')">Sessions</button>
+      <button class="tab" onclick="switchTab('capsule')">Capsules</button>
+      <button class="tab" onclick="switchTab('recommendations')">Prompt Tips</button>
+    </div>
+
+    <!-- ── Overview ─────────────────────────────────────────────────── -->
+    <div id="tab-overview" class="tab-content active">
+      <div id="overviewLoading" class="loading"><div class="spinner"></div>Loading data…</div>
+      <div id="overviewContent" style="display:none">
+        <!-- KPIs -->
+        <div class="grid grid-4 mb-24" id="kpiGrid"></div>
+
+        <!-- Charts row -->
+        <div class="grid grid-2 mb-24">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Token Usage by Provider</div>
+                <div class="chart-sub">Input + output tokens, last 30 days</div>
+              </div>
+            </div>
+            <div class="chart-container" style="height:260px">
+              <canvas id="providerChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Cost by Category</div>
+                <div class="chart-sub">Spend breakdown by task type</div>
+              </div>
+            </div>
+            <div class="chart-container" style="height:260px">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Models table -->
+        <div class="chart-card mb-24">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Model Breakdown</div>
+              <div class="chart-sub">Usage and cost per model</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Provider</th>
+                <th>API Calls</th>
+                <th>Input Tokens</th>
+                <th>Output Tokens</th>
+                <th>Cost (USD)</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody id="modelTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Top projects -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top Projects by Spend</div>
+            </div>
+          </div>
+          <div id="projectBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sessions ──────────────────────────────────────────────────── -->
+    <div id="tab-sessions" class="tab-content">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">All Sessions</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Provider</th>
+              <th>Turns</th>
+              <th>Input Tokens</th>
+              <th>Cost</th>
+              <th>Context Used</th>
+              <th>Last Active</th>
+            </tr>
+          </thead>
+          <tbody id="sessionTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Context Capsule ───────────────────────────────────────────── -->
+    <div id="tab-capsule" class="tab-content">
+      <div class="section-title">Context Capsule Alerts</div>
+      <p style="color:var(--text2); margin-bottom:20px; font-size:13px;">
+        Sessions approaching their model's context window limit. Generate a capsule to seamlessly
+        hand off the conversation to a fresh session or a different model.
+      </p>
+      <div id="capsuleList">
+        <div class="loading"><div class="spinner"></div>Scanning sessions…</div>
+      </div>
+    </div>
+
+    <!-- ── Prompt Recommendations ────────────────────────────────────── -->
+    <div id="tab-recommendations" class="tab-content">
+      <div class="section-title">Prompt Recommendations</div>
+      <p style="color:var(--text2); margin-bottom:20px; font-size:13px;">
+        Patterns detected across your sessions that waste tokens. Each recommendation includes
+        a drop-in template you can use immediately.
+      </p>
+      <div id="recList">
+        <div class="loading"><div class="spinner"></div>Analyzing prompts…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Session Detail Modal ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="sessionModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Session</div>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-kpis" id="modalKpis"></div>
+
+      <div class="modal-section-title">Model Breakdown</div>
+      <table id="modalModelTable" style="margin-bottom:4px">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Calls</th>
+            <th>Input Tokens</th>
+            <th>Output Tokens</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody id="modalModelBody"></tbody>
+      </table>
+
+      <div class="modal-section-title">Tools Used</div>
+      <div id="modalTools" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
+
+      <div class="modal-section-title">Recent Turns</div>
+      <div class="turn-list" id="modalTurns"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="modalCapsuleBtn">Generate Capsule</button>
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let RAW_DATA = null
+let FILTERED_DATA = null
+let providerChartInst = null
+let categoryChartInst = null
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = ['overview','sessions','capsule','recommendations']
+    t.classList.toggle('active', names[i] === name)
+  })
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + name)
+  })
+}
+
+// ── Formatting helpers ─────────────────────────────────────────────────────────
+function fmtNum(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K'
+  return n.toString()
+}
+function fmtCost(c) { return '$' + c.toFixed(4) }
+function fmtPct(p) { return Math.round(p * 100) + '%' }
+function fmtDate(ts) {
+  if (!ts) return '—'
+  const d = new Date(ts)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+function severityBadge(sev) {
+  const map = { high: 'danger', medium: 'warning', info: 'info', warning: 'warning', critical: 'danger' }
+  const cls = map[sev] ?? 'info'
+  return `<span class="badge badge-${cls}">${sev}</span>`
+}
+
+// ── Provider filter ────────────────────────────────────────────────────────────
+function applyFilter() {
+  const sel = document.getElementById('providerFilter').value
+  if (!RAW_DATA) return
+  if (sel === 'all') {
+    FILTERED_DATA = RAW_DATA
+  } else {
+    FILTERED_DATA = {
+      ...RAW_DATA,
+      projects: RAW_DATA.projects.filter(p => p.provider === sel)
+    }
+  }
+  renderAll()
+}
+
+// ── Data fetch ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/api/data')
+    if (!res.ok) throw new Error('fetch failed')
+    RAW_DATA = await res.json()
+    FILTERED_DATA = RAW_DATA
+
+    // Populate provider filter
+    const sel = document.getElementById('providerFilter')
+    const providers = [...new Set(RAW_DATA.projects.map(p => p.provider))]
+    sel.innerHTML = '<option value="all">All Providers</option>' +
+      providers.map(p => `<option value="${p}">${p}</option>`).join('')
+
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString()
+
+    renderAll()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function renderAll() {
+  renderOverview()
+  renderSessions()
+  renderCapsule()
+  renderRecommendations()
+}
+
+// ── Overview ───────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const data = FILTERED_DATA
+  if (!data) return
+
+  document.getElementById('overviewLoading').style.display = 'none'
+  document.getElementById('overviewContent').style.display = 'block'
+
+  // Aggregate totals
+  const allSessions = data.projects.flatMap(p => p.sessions)
+  const totalCost = data.projects.reduce((s, p) => s + p.totalCostUSD, 0)
+  const totalCalls = data.projects.reduce((s, p) => s + p.totalApiCalls, 0)
+  const totalInput = allSessions.reduce((s, s2) => s + s2.totalUsage.inputTokens, 0)
+  const totalOutput = allSessions.reduce((s, s2) => s + s2.totalUsage.outputTokens, 0)
+  const avgUtil = allSessions.length
+    ? allSessions.reduce((s, s2) => s + s2.contextUtilization, 0) / allSessions.length
+    : 0
+
+  const kpis = [
+    { label: 'Total Cost', value: fmtCost(totalCost), sub: 'All providers', cls: 'card-accent' },
+    { label: 'API Calls', value: fmtNum(totalCalls), sub: allSessions.length + ' sessions', cls: 'card-success' },
+    { label: 'Input Tokens', value: fmtNum(totalInput), sub: fmtNum(totalOutput) + ' output', cls: '' },
+    { label: 'Avg Context Use', value: fmtPct(avgUtil), sub: 'Across sessions', cls: avgUtil > 0.7 ? 'card-danger' : 'card-warning' },
+  ]
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k =>
+    `<div class="card ${k.cls}">
+      <div class="card-title">${k.label}</div>
+      <div class="stat-value">${k.value}</div>
+      <div class="stat-sub">${k.sub}</div>
+    </div>`
+  ).join('')
+
+  // Provider chart
+  const byProvider = {}
+  for (const p of data.projects) {
+    if (!byProvider[p.provider]) byProvider[p.provider] = { input: 0, output: 0 }
+    for (const s of p.sessions) {
+      byProvider[p.provider].input += s.totalUsage.inputTokens
+      byProvider[p.provider].output += s.totalUsage.outputTokens
+    }
+  }
+  const provLabels = Object.keys(byProvider)
+  const COLORS = ['#6c63ff','#00d4aa','#ff6b6b','#ffd166','#a29bfe','#fd79a8','#55efc4','#fdcb6e']
+
+  if (providerChartInst) providerChartInst.destroy()
+  providerChartInst = new Chart(document.getElementById('providerChart'), {
+    type: 'bar',
+    data: {
+      labels: provLabels,
+      datasets: [
+        {
+          label: 'Input',
+          data: provLabels.map(p => byProvider[p].input),
+          backgroundColor: COLORS.map(c => c + 'cc'),
+          borderRadius: 4,
+        },
+        {
+          label: 'Output',
+          data: provLabels.map(p => byProvider[p].output),
+          backgroundColor: COLORS.map(c => c + '55'),
+          borderRadius: 4,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#2e3248' } },
+        y: { ticks: { color: '#64748b', callback: v => fmtNum(v) }, grid: { color: '#2e3248' } },
+      }
+    }
+  })
+
+  // Category chart
+  const byCat = {}
+  for (const s of allSessions) {
+    for (const [cat, bd] of Object.entries(s.categoryBreakdown)) {
+      if (!byCat[cat]) byCat[cat] = 0
+      byCat[cat] += bd.costUSD
+    }
+  }
+  const catEntries = Object.entries(byCat)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a)
+
+  if (categoryChartInst) categoryChartInst.destroy()
+  categoryChartInst = new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: catEntries.map(([k]) => k),
+      datasets: [{
+        data: catEntries.map(([, v]) => v),
+        backgroundColor: COLORS,
+        borderColor: '#1a1d27',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 11 }, padding: 10 }, position: 'right' },
+        tooltip: { callbacks: { label: ctx => ` ${fmtCost(ctx.raw)}` } },
+      }
+    }
+  })
+
+  // Model table
+  const modelMap = {}
+  for (const p of data.projects) {
+    for (const s of p.sessions) {
+      for (const [model, mb] of Object.entries(s.modelBreakdown)) {
+        if (!modelMap[model]) modelMap[model] = { calls: 0, costUSD: 0, input: 0, output: 0, provider: p.provider }
+        modelMap[model].calls += mb.calls
+        modelMap[model].costUSD += mb.costUSD
+        modelMap[model].input += mb.tokens.inputTokens
+        modelMap[model].output += mb.tokens.outputTokens
+      }
+    }
+  }
+  const modelEntries = Object.entries(modelMap).sort(([, a], [, b]) => b.costUSD - a.costUSD)
+  const totalModelCost = modelEntries.reduce((s, [, m]) => s + m.costUSD, 0)
+  document.getElementById('modelTableBody').innerHTML = modelEntries.map(([model, m]) => {
+    const share = totalModelCost > 0 ? m.costUSD / totalModelCost : 0
+    return `<tr>
+      <td><code style="font-size:12px">${model}</code></td>
+      <td>${m.provider}</td>
+      <td>${fmtNum(m.calls)}</td>
+      <td>${fmtNum(m.input)}</td>
+      <td>${fmtNum(m.output)}</td>
+      <td>${fmtCost(m.costUSD)}</td>
+      <td>
+        <div class="progress-wrap">
+          <div style="font-size:11px;color:var(--text3)">${fmtPct(share)}</div>
+          <div class="progress-bar-outer">
+            <div class="progress-bar-inner" style="width:${fmtPct(share)};background:var(--accent)"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`
+  }).join('')
+
+  // Top projects bar chart
+  const topProjects = [...data.projects].sort((a, b) => b.totalCostUSD - a.totalCostUSD).slice(0, 8)
+  const maxCost = topProjects[0]?.totalCostUSD ?? 1
+  document.getElementById('projectBars').innerHTML = topProjects.map(p =>
+    `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--text);font-weight:500">${p.project}</span>
+        <span style="color:var(--text2)">${fmtCost(p.totalCostUSD)}</span>
+      </div>
+      <div class="progress-bar-outer" style="height:8px">
+        <div class="progress-bar-inner" style="width:${(p.totalCostUSD/maxCost*100).toFixed(1)}%;background:var(--accent)"></div>
+      </div>
+    </div>`
+  ).join('')
+}
+
+// ── Sessions tab ───────────────────────────────────────────────────────────────
+function renderSessions() {
+  const data = FILTERED_DATA
+  if (!data) return
+  const allSessions = data.projects.flatMap(p =>
+    p.sessions.map(s => ({ ...s, _project: p.project, _provider: p.provider }))
+  ).sort((a, b) => (b.lastTimestamp ?? '').localeCompare(a.lastTimestamp ?? ''))
+
+  document.getElementById('sessionTableBody').innerHTML = allSessions.map(s => {
+    const util = s.contextUtilization
+    const utilColor = util >= 0.9 ? 'var(--danger)' : util >= 0.7 ? 'var(--warning)' : 'var(--success)'
+    return `<tr>
+      <td style="font-weight:500">${s._project}</td>
+      <td>${s._provider}</td>
+      <td>${s.apiCalls}</td>
+      <td>${fmtNum(s.totalUsage.inputTokens)}</td>
+      <td>${fmtCost(s.totalCostUSD)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="progress-bar-outer" style="width:80px;height:5px">
+            <div class="progress-bar-inner" style="width:${Math.min(util*100,100).toFixed(1)}%;background:${utilColor}"></div>
+          </div>
+          <span style="font-size:11px;color:${utilColor}">${fmtPct(util)}</span>
+        </div>
+      </td>
+      <td style="color:var(--text3);font-size:12px">${fmtDate(s.lastTimestamp)}</td>
+    </tr>`
+  }).join('')
+}
+
+// ── Capsule tab ────────────────────────────────────────────────────────────────
+function renderCapsule() {
+  const data = FILTERED_DATA
+  if (!data) return
+
+  const alerts = data.capsuleAlerts ?? []
+  const el = document.getElementById('capsuleList')
+
+  if (alerts.length === 0) {
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon"></div>
+      <div class="empty-title">All clear!</div>
+      <p>No sessions are approaching their context limit right now.</p>
+    </div>`
+    return
+  }
+
+  el.innerHTML = alerts.map(a => {
+    const utilColor = a.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'
+    const utilPct = Math.round(a.utilization * 100)
+    const barWidth = Math.min(utilPct, 100)
+    return `<div class="capsule-card ${a.severity}">
+      <div class="capsule-header">
+        <div>
+          <div class="capsule-project">${a.project}</div>
+          <div class="capsule-meta">${a.provider} · ${a.model} · Session ${a.sessionId}</div>
+        </div>
+        ${severityBadge(a.severity)}
+      </div>
+      <div class="util-bar-wrap">
+        <div class="util-label">
+          <span>Context Window Used</span>
+          <span style="color:${utilColor};font-weight:600">
+            ${a.contextExceeded ? '⚠ Exceeded limit' : utilPct + '%'}
+          </span>
+        </div>
+        <div class="progress-bar-outer" style="height:10px">
+          <div class="progress-bar-inner" style="width:${barWidth}%;background:${utilColor}"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">
+          ${a.contextExceeded
+            ? `Context limit exceeded — session likely used multiple context windows`
+            : `${fmtNum(a.totalContextTokens)} / ${fmtNum(a.contextWindowSize)} tokens used`
+          }
+        </div>
+      </div>
+      <div class="capsule-actions">
+        <button class="btn btn-primary" onclick="generateCapsule('${a.sessionId}','${a.project}')">
+          Generate Capsule
+        </button>
+        <button class="btn btn-outline" onclick="openSessionModal('${a.sessionId}')">
+          View Session
+        </button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function generateCapsule(sessionId, project) {
+  try {
+    const res = await fetch('/api/capsule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+    const result = await res.json()
+    if (result.mdPath) {
+      alert(`Capsule generated!\n\nMarkdown: ${result.mdPath}\n\nCopy the continuation prompt from the file and paste it into your new session.`)
+    } else {
+      alert('Error generating capsule: ' + (result.error ?? 'Unknown error'))
+    }
+  } catch (e) {
+    alert('Failed to generate capsule: ' + e.message)
+  }
+}
+
+// ── Recommendations tab ────────────────────────────────────────────────────────
+function renderRecommendations() {
+  const data = FILTERED_DATA
+  if (!data) return
+
+  const recs = data.recommendations ?? []
+  const el = document.getElementById('recList')
+
+  if (recs.length === 0) {
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-title">Looking good!</div>
+      <p>No significant prompt inefficiencies detected across your sessions.</p>
+    </div>`
+    return
+  }
+
+  el.innerHTML = recs.map(rec => `<div class="rec-card">
+    <div class="rec-header">
+      ${severityBadge(rec.severity)}
+      <span class="rec-title">${rec.templateDescription}</span>
+    </div>
+    <div class="rec-desc">${rec.description}</div>
+    ${rec.originalSnippet ? `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">
+      <strong>Detected in:</strong> "${rec.originalSnippet.slice(0,100)}${rec.originalSnippet.length > 100 ? '…' : ''}"
+    </div>` : ''}
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;font-weight:600">Suggested Template:</div>
+    <div class="rec-template">${data.templates?.[rec.templateName] ?? rec.templateName}</div>
+    <div class="rec-meta">
+      <span>Category: <strong>${rec.category}</strong></span>
+      <span class="saving-badge">~${rec.estimatedSavingPercent}% token savings</span>
+      <span>Issue: <code>${rec.issue}</code></span>
+    </div>
+  </div>`).join('')
+}
+
+// ── Session Modal ─────────────────────────────────────────────────────────────
+function openSessionModal(sessionId) {
+  const data = FILTERED_DATA
+  if (!data) return
+
+  // Find session across all projects
+  let sess = null
+  let providerName = ''
+  for (const p of data.projects) {
+    const found = p.sessions.find(s => s.sessionId === sessionId)
+    if (found) { sess = found; providerName = p.provider; break }
+  }
+  if (!sess) return
+
+  // Header
+  document.getElementById('modalTitle').textContent = sess.project
+  document.getElementById('modalSub').textContent =
+    `${providerName} · Session ${sessionId.slice(0, 16)}… · ${fmtDate(sess.lastTimestamp)}`
+
+  // KPIs
+  const util = sess.contextUtilization
+  const utilColor = util >= 0.9 ? 'var(--danger)' : util >= 0.7 ? 'var(--warning)' : 'var(--success)'
+  const utilDisplay = sess.contextExceeded
+    ? `<span style="color:var(--danger)">Exceeded</span>`
+    : `<span style="color:${utilColor}">${fmtPct(util)}</span>`
+  document.getElementById('modalKpis').innerHTML = [
+    { label: 'Total Cost',    value: fmtCost(sess.totalCostUSD) },
+    { label: 'API Calls',     value: fmtNum(sess.apiCalls) },
+    { label: 'Input Tokens',  value: fmtNum(sess.totalUsage.inputTokens) },
+    { label: 'Context Usage', value: utilDisplay },
+  ].map(k => `<div class="modal-kpi">
+    <div class="modal-kpi-label">${k.label}</div>
+    <div class="modal-kpi-value">${k.value}</div>
+  </div>`).join('')
+
+  // Model breakdown
+  const modelEntries = Object.entries(sess.modelBreakdown)
+    .sort(([,a],[,b]) => b.costUSD - a.costUSD)
+  document.getElementById('modalModelBody').innerHTML = modelEntries.map(([model, m]) =>
+    `<tr>
+      <td><code style="font-size:11px">${model}</code></td>
+      <td>${fmtNum(m.calls)}</td>
+      <td>${fmtNum(m.tokens.inputTokens)}</td>
+      <td>${fmtNum(m.tokens.outputTokens)}</td>
+      <td style="color:var(--success)">${fmtCost(m.costUSD)}</td>
+    </tr>`
+  ).join('')
+
+  // Tools
+  const tools = Object.keys(sess.toolBreakdown)
+  document.getElementById('modalTools').innerHTML = tools.length
+    ? tools.map(t => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent2)">${t} ×${sess.toolBreakdown[t].calls}</span>`).join('')
+    : `<span style="color:var(--text3);font-size:12px">No tool calls recorded</span>`
+
+  // Recent turns (pre-sliced by server to last 15)
+  const turns = (sess.turns ?? []).slice().reverse()
+  document.getElementById('modalTurns').innerHTML = turns.length
+    ? turns.map(t => `<div class="turn-row">
+        <div class="turn-row-top">
+          <span class="turn-cat">${t.category}</span>
+          <span class="turn-model">${t.model}</span>
+          <span class="turn-cost">${fmtCost(t.costUSD)}</span>
+        </div>
+        <div class="turn-msg">${(t.userMessage || '(no message)').slice(0, 160)}${(t.userMessage||'').length > 160 ? '…' : ''}</div>
+      </div>`).join('')
+    : `<div style="color:var(--text3);font-size:12px;padding:10px">No turns available</div>`
+
+  // Wire capsule button
+  document.getElementById('modalCapsuleBtn').onclick = () => {
+    closeModal()
+    generateCapsule(sessionId, sess.project)
+  }
+
+  document.getElementById('sessionModal').classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('sessionModal')) return
+  document.getElementById('sessionModal').classList.remove('open')
+  document.body.style.overflow = ''
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal()
+})
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+loadData()
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.capsule.md
+*.capsule.json
+.token-optimizer-cache/
