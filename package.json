@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/web/dashboard.html dist/web/dashboard.html && chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
     "test": "vitest"
   },
