@@ -1,6 +1,6 @@
 {
   "name": "@hashbyharsh/continuum",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Seamless AI session continuity — token analytics, Context Capsule handoffs, and Prompt Recommendations",
   "type": "module",
   "main": "./dist/cli.js",
