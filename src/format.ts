@@ -93,7 +93,7 @@ export function printCapsuleAlerts(alerts: CapsuleAlert[]): void {
     return
   }
 
-  console.log(chalk.bold(`\n🧩 Context Capsule Alerts (${alerts.length})\n`))
+  console.log(chalk.bold(`\n Context Capsule Alerts (${alerts.length})\n`))
   for (const a of alerts) {
     const pct = Math.round(a.utilization * 100)
     const color = a.severity === 'critical' ? chalk.red : chalk.yellow
@@ -117,7 +117,7 @@ export function printRecommendations(recs: PromptRecommendation[]): void {
     return
   }
 
-  console.log(chalk.bold(`\n💡 Prompt Recommendations (${recs.length})\n`))
+  console.log(chalk.bold(`\n Prompt Recommendations (${recs.length})\n`))
   for (const rec of recs) {
     const sev = rec.severity === 'high' ? chalk.red : rec.severity === 'medium' ? chalk.yellow : chalk.blue
     console.log(`${sev(`[${rec.severity.toUpperCase()}]`)} ${chalk.bold(rec.templateDescription)}`)

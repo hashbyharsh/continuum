@@ -71,7 +71,7 @@ program
     const allSessions = projects.flatMap(p => p.sessions)
     const alerts = detectAlerts(allSessions)
     if (alerts.length > 0) {
-      console.log(chalk.yellow(`⚠️  ${alerts.length} session(s) approaching context limits.`) +
+      console.log(chalk.yellow(`${alerts.length} session(s) approaching context limits.`) +
         chalk.dim(' Run `continuum capsule` for details.'))
       console.log('')
     }
@@ -79,7 +79,7 @@ program
     const allTurns = allSessions.flatMap(s => s.turns)
     const recs = topRecommendations(allTurns, 3)
     if (recs.length > 0) {
-      console.log(chalk.blue(`💡 ${recs.length} prompt improvement(s) detected.`) +
+      console.log(chalk.blue(`${recs.length} prompt improvement(s) detected.`) +
         chalk.dim(' Run `continuum recommend` for details.'))
       console.log('')
     }
@@ -107,7 +107,7 @@ program
     await server.start()
     const url = server.url
 
-    console.log(`\n${chalk.bold.hex('#6c63ff')('⚡ Dashboard running')} at ${chalk.cyan.underline(url)}`)
+    console.log(`\n${chalk.bold.hex('#6c63ff')('Dashboard running')} at ${chalk.cyan.underline(url)}`)
     console.log(chalk.dim(`  Loaded ${projects.length} projects · ${projects.reduce((s, p) => s + p.sessions.length, 0)} sessions`))
     console.log(chalk.dim('  Press Ctrl+C to stop\n'))
 
@@ -168,7 +168,7 @@ program
 
       console.log(chalk.dim(`Generating capsule for session ${sess.sessionId.slice(0, 16)}…`))
       const result = await capsuleSession(sess, opts.cwd ?? false)
-      console.log(chalk.green('\n✅ Capsule generated!\n'))
+      console.log(chalk.green('\n Capsule generated!\n'))
       console.log(`  Markdown: ${chalk.cyan(result.mdPath)}`)
       console.log(`  JSON:     ${chalk.cyan(result.jsonPath)}`)
       console.log('')
@@ -196,9 +196,9 @@ program
         if (!sess) continue
         try {
           const result = await capsuleSession(sess, opts.cwd ?? false)
-          console.log(`  ✅ ${chalk.bold(a.project)} → ${chalk.cyan(result.mdPath)}`)
+          console.log(`${chalk.bold(a.project)} → ${chalk.cyan(result.mdPath)}`)
         } catch (e) {
-          console.log(`  ❌ ${chalk.bold(a.project)} → ${chalk.red(String(e))}`)
+          console.log(`${chalk.bold(a.project)} → ${chalk.red(String(e))}`)
         }
       }
       console.log('')
